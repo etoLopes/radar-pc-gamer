@@ -15,7 +15,14 @@ function el(tag,text,cls){const element=document.createElement(tag);if(text!=nul
 function safeLink(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?u.href:null;}catch{return null;}}
 function anchor(text,url){const a=el('a',text);a.href=safeLink(url)||'#';a.target='_blank';a.rel='noopener noreferrer';return a;}
 function pill(text,kind=''){return el('span',text,'pill '+kind);}
-function verdict(o){if(o.verdict==='expired_window')return ['Oferta antiga',''];if(o.review_status!=='approved')return ['Revisar antes de comprar','warning'];if(!o.sufficient_history)return ['Histórico insuficiente',''];if(number(o.difference_pct)<0)return ['Abaixo da média','green'];return ['Na média ou acima',''];}
+function statusLabel(o){
+ if(o.review_status==='approved')return 'Aprovada individualmente';
+ if(o.review_status==='rejected')return 'Não recomendada';
+ if(o.research_status==='awaiting_research')return 'Aguardando pesquisa técnica';
+ if(o.technical_status==='supported')return o.compatibility==='requires_bundle_change'?'Exige outro combo':o.offer_status==='incomplete'?'Confirmar condições da oferta':'Confirmar compatibilidade';
+ return 'Evidência técnica insuficiente';
+}
+function verdict(o){if(o.verdict==='expired_window')return ['Oferta antiga',''];if(o.review_status!=='approved')return [statusLabel(o),'warning'];if(!o.sufficient_history)return ['Histórico insuficiente',''];if(number(o.difference_pct)<0)return ['Abaixo da média','green'];return ['Na média ou acima',''];}
 function renderOverview(){
  $('budget').textContent=brl(data.budget_brl);$('ceiling').textContent='Teto '+brl(data.hard_budget_brl)+' · incluindo frete e cooler';
  $('campaign').textContent=data.campaign_end?'Campanha até '+day(data.campaign_end):'Data final não informada';
@@ -41,17 +48,18 @@ function renderOffers(){
  filtered.sort((a,b)=>sort==='price'?ascending(a,b,'price_brl'):sort==='quality'?descending(a,b,'quality_score'):sort==='discount'?ascending(a,b,'difference_pct'):Date.parse(b.posted_at)-Date.parse(a.posted_at));
  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.min(page,totalPages-1);
  $('result-count').textContent=filtered.length+' oferta(s) · preços anunciados, sem frete';$('empty').hidden=filtered.length>0;$('offer-rows').replaceChildren();
- for(const o of filtered.slice(page*pageSize,(page+1)*pageSize)){const row=el('tr');const title=el('td');title.append(el('strong',o.product),pill(statuses[o.review_status]||'Validação pendente',o.review_status==='approved'?'green':o.review_status==='rejected'?'red':'warning'),el('span',(labels[o.category]||o.category)+' · '+date(o.posted_at),'table-sub'));row.append(title);
+ for(const o of filtered.slice(page*pageSize,(page+1)*pageSize)){const row=el('tr');const title=el('td');title.append(el('strong',o.product),pill(statusLabel(o),o.review_status==='approved'?'green':o.review_status==='rejected'?'red':'warning'),el('span',(labels[o.category]||o.category)+' · '+date(o.posted_at),'table-sub'));row.append(title);
  const price=el('td');price.append(el('span',brl(o.price_brl),'price'),el('span',o.payment_terms||'Pagamento não informado','table-sub'),el('span',o.store||'Loja não identificada','table-sub'));row.append(price);
  const quality=el('td');quality.append(el('span',note(o.quality_score),'score'),el('span',number(o.quality_score)==null?'Evidência insuficiente':'Referência = 8','table-sub'));row.append(quality);
  const value=el('td');value.append(el('span',note(o.value_score),'score'),el('span',number(o.value_score)==null?'Sem base comparável':'Índice relativo','table-sub'));row.append(value);
  const average=el('td');average.append(el('span',brl(o.historical_mean)),el('span',o.history_days?o.history_days+' dia(s) anterior(es)':'Sem histórico comparável','table-sub'));if(o.history_days&&!o.sufficient_history)average.append(el('span','Amostra pequena','table-sub'));row.append(average);
  const interpretation=el('td'),[text,kind]=verdict(o);interpretation.append(pill(text,kind));if(o.sufficient_history&&number(o.difference_pct)!=null)interpretation.append(el('span',(number(o.difference_pct)>0?'+':'')+note(o.difference_pct)+'% vs. média','table-sub '+(number(o.difference_pct)<0?'down':'up')));
+ if(o.compatibility==='requires_bundle_change')interpretation.append(el('span','Alternativa exige avaliar outro conjunto','table-sub'));if(o.offer_reasons?.length)interpretation.append(el('span',o.offer_reasons.join(' '),'table-sub'));
  if(o.price_comparison?.status==='lower')interpretation.append(el('span','Menor que a oferta anterior comparável','table-sub down'));row.append(interpretation);
  const actions=el('td'),button=el('button','Ver análise','quiet');button.type='button';button.addEventListener('click',()=>showDetail(o));actions.append(button);row.append(actions);$('offer-rows').append(row);}
  $('page-number').textContent='Página '+(page+1)+' de '+totalPages;$('prev').disabled=page===0;$('next').disabled=page>=totalPages-1;
 }
-function showDetail(o){const target=$('detail-content');target.replaceChildren(el('h2',o.product),pill(statuses[o.review_status]||'Validação pendente',o.review_status==='approved'?'green':'warning'));
+function showDetail(o){const target=$('detail-content');target.replaceChildren(el('h2',o.product),pill(statusLabel(o),o.review_status==='approved'?'green':'warning'));
  const grid=el('div',null,'detail-grid');for(const [name,value] of [['Preço anunciado',brl(o.price_brl)],['Qualidade técnica',note(o.quality_score)],['Custo-benefício',note(o.value_score)],['Oportunidade',note(o.opportunity_score)],['Média anterior',brl(o.historical_mean)],['Mediana anterior',brl(o.historical_median)],['Mínimo anterior',brl(o.historical_min)],['Dias comparáveis',o.history_days]]){const cell=el('div',name);cell.append(el('strong',value));grid.append(cell);}target.append(grid);
  target.append(el('p',(relation[o.relation]||'Comparação pendente')+' · '+(o.review_status==='approved'?(compat[o.compatibility]||'Compatibilidade pendente'):'Compatibilidade ainda não confirmada'),'small'));
  if(o.observation){target.append(el('h3','Observação da análise'),el('p',o.observation,'small'),el('p','Afirmação gerada pela análise; as fontes abaixo não garantem, sozinhas, toda a interpretação.','small muted'));}
