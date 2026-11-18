@@ -156,7 +156,7 @@ function renderManual(){
   if(!entries.length){group.append(el('p','Nenhuma oferta selecionada com evidência suficiente nesta revisão. Pesquise um modelo com especificações e garantia identificáveis.','rank-empty'));}
   const grid=el('div',null,'rank-grid');
   for(const e of entries){const card=el('article',null,'manual-card '+(e.editorial_score>=9?'manual-black':'manual-green'));
-   card.append(el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
+   card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
    const why=el('abbr','Por que serve para mim?');why.title=e.observation;card.append(why);
    card.append(el('p','Pagamento: '+(e.payment_terms||'não identificado')+' · Cupom: '+(e.coupon||'não identificado'),'small'));
    card.append(el('p','Confirmar: '+(e.missing||[]).join('; '),'small muted'));
@@ -168,11 +168,11 @@ function renderManual(){
  }
  const am4=(m.shortlist.cpu||[]).filter(e=>['ryzen5600x','ryzen5700x'].includes(e.model_key));
  const partial=[am4[0],...['gpu','motherboard','psu','case','cooler'].map(k=>m.shortlist[k]?.[0])].filter(Boolean);
- const sum=partial.reduce((n,e)=>n+Number(e.price_brl),0);
- $('manual-budget').textContent='Rota AM4 exploratória: '+partial.map(e=>labels[e.category]).join(' + ')+' somam '+brl(sum)+'. Restam '+brl(Number(data.hard_budget_brl)-sum)+' do teto para RAM, SSD, fretes e eventuais ajustes. Não é um PC completo nem uma montagem validada; ofertas e cupons podem ter condições diferentes.';
+ const sum=partial.reduce((n,e)=>n+Number(e.price_brl),0);const absent=Object.keys(labels).filter(k=>!partial.some(e=>e.category===k)).map(k=>labels[k]).join(', ');
+ $('manual-budget').textContent='Rota AM4 exploratória: '+partial.map(e=>labels[e.category]).join(' + ')+' somam '+brl(sum)+'. Restam '+brl(Number(data.hard_budget_brl)-sum)+' do teto para '+absent+', fretes e eventuais ajustes. Não é um PC completo nem uma montagem validada; ofertas e cupons podem ter condições diferentes.';
  $('coverage').replaceChildren();
  for(const c of data.coverage){const entries=m.shortlist[c.category]||m.shortlist[c.key]||[];const card=el('article',null,'part-card');card.append(el('span',c.label,'part-label'),pill(entries.length?'Candidato editorial; montagem não aprovada':'Pesquisar alternativa',entries.length?'green':'warning'),el('span','Referência: '+c.reference,'small muted'),el('strong',brl(entries[0]?.price_brl)));$('coverage').append(card);}
- $('subtotal').textContent=brl(sum);$('subtotal-note').textContent='Rota AM4 parcial indicada acima; faltam RAM, SSD, fretes e validação do conjunto.';
+ $('subtotal').textContent=brl(sum);$('subtotal-note').textContent='Rota AM4 parcial indicada acima; faltam '+absent+', fretes e validação do conjunto.';
  $('missing-summary').textContent='Prioridade para pesquisa externa: RAM e SSD. Confirmar BIOS, dimensões e condições das ofertas antes da compra.';
  for(const id of ['shortlist','market']){const hidden=!data.offers.length;$(id).hidden=hidden;const nav=document.querySelector('.sidebar a[href="#'+id+'"]');if(nav)nav.href=hidden?'#manual-review':'#'+id;}
  $('promising').hidden=!(data.promising||[]).length;
