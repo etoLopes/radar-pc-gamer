@@ -8,6 +8,7 @@ const date=v=>new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',d
 const day=v=>v.split('-').reverse().join('/');
 const relation={exact:'Modelo de referência',equivalent:'Similar à referência',superior:'Avaliado como superior',inferior:'Avaliado como inferior',unknown:'Comparação pendente'};
 const compat={compatible:'Compatível com o perfil avaliado',incompatible:'Incompatível com o perfil',requires_bundle_change:'Exige trocar outras peças',pending:'Compatibilidade pendente'};
+const missingLabels={cooling_power:'teste de refrigeração e consumo',benchmark_comparavel:'benchmark comparável',identidade_exata:'modelo exato',gaming:'desempenho em jogos',memory:'impacto da memória de vídeo',cooling_variant:'refrigeração da versão',power_connectors:'conectores de energia'};
 const statuses={approved:'Aprovada individualmente',pending:'Validação pendente',rejected:'Não recomendada'};
 let data={offers:[],queue:{},coverage:[],series:{},combo:{}},filtered=[],page=0;
 const pageSize=12;
@@ -47,7 +48,7 @@ function renderPromising(){
  if(!candidates.length){list.append(el('p','Nenhum candidato com evidência parcial suficiente nesta exportação.','rank-empty'));return;}
  for(const c of candidates){
   const card=el('article',null,'part-card');card.append(el('h3',c.product),el('strong',brl(c.price_brl)),pill('Investigação pendente','warning'));
-  card.append(el('p',c.signal,'small'),el('p','Falta confirmar: '+(c.missing?.join(', ')||'critérios técnicos e condições da oferta')+'.','small'));
+  card.append(el('p',c.signal,'small'),el('p','Falta confirmar: '+(c.missing?.map(key=>missingLabels[key]||key.replaceAll('_',' ')).join(', ')||'critérios técnicos e condições da oferta')+'.','small'));
   if(c.required_changes?.length)card.append(el('p','Mudanças a avaliar: '+c.required_changes.join('; '),'small'));
   card.append(el('p','Preço anunciado, sem frete confirmado. Não é indicação de compra.','small muted'));
   if(safeLink(c.post_url))card.append(anchor('Ver postagem ↗',c.post_url));
