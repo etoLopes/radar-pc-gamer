@@ -153,7 +153,10 @@ function renderDailySummary(){
  if(summary.sources?.length){const sources=el('details');sources.append(el('summary','Fontes da orientação'));for(const source of summary.sources)sources.append(anchor(source.title,source.url),el('br'));root.append(sources);}
  const expanded=el('details');expanded.append(el('summary','Recomendações e justificativas'),list);
  const scenarios=$('scenario-panel');scenarios.replaceChildren(el('h3','Cenários do conjunto'),el('p','Parciais · sem RAM, SSD e frete','small muted'));
- for(const scenario of summary.scenarios||[]){const row=el('div',null,'scenario-row');row.append(el('span',scenario.label),el('strong',brl(scenario.subtotal_brl)));const meter=el('meter');meter.min=0;meter.max=Number(data.hard_budget_brl)||7300;meter.value=Number(scenario.subtotal_brl)||0;meter.setAttribute('aria-label',scenario.label+' — subtotal em relação ao teto');row.append(meter);scenarios.append(row);}
+ for(const scenario of summary.scenarios||[]){const row=el('div',null,'scenario-row');row.append(el('span',scenario.label),el('strong',brl(scenario.subtotal_brl)));const meter=el('meter');meter.min=0;meter.max=Number(data.hard_budget_brl)||7300;meter.value=Number(scenario.subtotal_brl)||0;meter.setAttribute('aria-label',scenario.label+' — subtotal em relação ao teto');row.append(meter);
+ if(number(scenario.value_score)!=null){const badge=scoreBadge(scenario.value_score,'Custo-benefício · provisório');badge.classList.add('scenario-grade');row.append(badge,el('p',scenario.value_label,'scenario-label'));const reason=el('details');reason.append(el('summary','Por que esta nota?'),el('p',scenario.value_reason));row.append(reason);}
+ row.append(el('p','Margem até o teto: '+brl(scenario.remaining_ceiling_brl),'small muted'));scenarios.append(row);}
+ if(summary.scenario_score_method){const method=el('details');method.append(el('summary','Como pontuei os cenários'),el('p',summary.scenario_score_method));scenarios.append(method);}
  scenarios.append(el('p','Teto do conjunto: '+brl(data.hard_budget_brl),'small'));
  root.append(expanded,el('p',summary.method+' Consulte os cards para os dados mais recentes.','small muted'));
 }
