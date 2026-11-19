@@ -6,3 +6,5 @@
 .manual-card{border:2px solid #298258;border-radius:12px;padding:18px;min-width:0;background:#fff}.manual-black{border-color:#171c19}.manual-card h4{font-size:16px;line-height:1.45;margin:0 0 12px}.manual-price{display:block;font-size:25px;margin-bottom:12px}.manual-card p{line-height:1.55}.manual-card a{overflow-wrap:anywhere}.manual-card abbr{cursor:help}#manual-audit details{border-bottom:1px solid #ddd;padding:12px 0}#manual-search{display:block;width:100%;padding:12px;margin:12px 0}#manual-budget{display:block}#manual-review[hidden]{display:none}
 
 section[hidden]{display:none!important}
+
+.manual-orange{border-left:4px solid #bd5c0a}

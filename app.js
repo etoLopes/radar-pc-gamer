@@ -40,6 +40,14 @@ function renderOverview(){
  $('combo-blockers').replaceChildren();const blocks=Object.keys(data.combo.blockers||{});for(const name of blocks)$('combo-blockers').append(el('li',name));for(const key of data.combo.missing||[])$('combo-blockers').append(el('li','Falta candidato para '+(labels[key]||key)));if(!blocks.length&&!(data.combo.missing||[]).length)$('combo-blockers').append(el('li','Consulte os detalhes de cada oferta. A avaliação final não presume informações ausentes.'));
  $('combos').replaceChildren();for(const combo of eligible){const details=el('details'),summary=el('summary','Combo validado · '+brl(combo.total_brl)+' · média técnica '+note(combo.average_quality));details.append(summary);const list=el('ul');for(const [category,name] of Object.entries(combo.parts))list.append(el('li',(labels[category]||category)+': '+name));details.append(list);$('combos').append(details);}
  $('processing').replaceChildren();for(const [key,name] of [['pending','Aguardando análise'],['review','Mensagens aguardando validação'],['done','Mensagens com oferta aprovada'],['discarded','Descartadas / sem oferta válida']]){const row=el('div',null,'process-row');row.append(el('span',name),el('strong',data.queue[key]||0));$('processing').append(row);}
+ if(data.operations){const op=data.operations;const labels={completed:'Concluída',backlog:'Há pendências',needs_attention:'Falhas isoladas',interrupted:'Interrompida; retomada solicitada',failed:'Falhou',budget_blocked:'Orçamento atingido',api_blocked:'API indisponível ou sem autorização',running:'Em execução ou interrompida'};
+ const append=(label,value)=>{const row=el('div',null,'process-row');row.append(el('span',label),el('strong',value));$('processing').append(row);};
+ append('Pendência mais antiga',op.pending?Math.ceil(op.oldest_pending_seconds/3600)+' h':'Sem fila');
+ append('Falhas isoladas / aguardando nova tentativa',op.isolated_failures+' / '+op.retry_waiting);
+ for(const [kind,label] of [['collection','Última coleta'],['analysis','Última análise']]){const run=op.runs.find(r=>r.kind===kind);if(run)append(label,new Date(run.started_at).toLocaleString('pt-BR')+' · '+(labels[run.outcome]||run.outcome));}
+ const last=op.runs.find(r=>r.kind==='analysis');if(last)append('Reutilizações / pesquisas técnicas (última execução)',(last.metrics.technical_cache_hits||0)+' / '+(last.metrics.technical_researches||0));
+ }
+
  $('cost').replaceChildren();if(data.api_budget){$('cost').append(el('strong','US$ '+note(data.api_budget.reserved_usd)+' / '+note(data.api_budget.limit_usd)),el('p','Reserva conservadora de orçamento. Não é o valor efetivamente cobrado pela API.'));}else $('cost').append(el('p','Orçamento da API não exibido nesta versão do painel.'));
 }
 function renderPromising(){
@@ -155,12 +163,14 @@ function renderManual(){
   const group=el('section',null,'rank-group');group.append(el('h3',label));const entries=m.shortlist[cat]||[];
   if(!entries.length){group.append(el('p','Nenhuma oferta selecionada com evidência suficiente nesta revisão. Pesquise um modelo com especificações e garantia identificáveis.','rank-empty'));}
   const grid=el('div',null,'rank-grid');
-  for(const e of entries){const card=el('article',null,'manual-card '+(e.editorial_score>=9?'manual-black':'manual-green'));
-   card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
+  for(const e of entries){const card=el('article',null,'manual-card '+(Number(e.combined_score||e.editorial_score)>=9?'manual-black':Number(e.combined_score||e.editorial_score)>=8?'manual-green':'manual-orange'));
+   card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':e.origin==='rules'?'Filtro de compatibilidade':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
+   card.append(el('p','Preço: '+note(e.price_score)+' · Média das notas: '+note(e.combined_score),'small'),el('p',e.price_note||'Histórico insuficiente','small muted'));if(e.historical_mean)card.append(el('p','Média observada: '+brl(e.historical_mean)+' · '+e.history_days+' dia(s) comparáveis','small'));
+   if(e.calibration_note)card.append(el('p',e.calibration_note,'small muted'));
    const why=el('abbr','Por que serve para mim?');why.title=e.observation;card.append(why);
    card.append(el('p','Pagamento: '+(e.payment_terms||'não identificado')+' · Cupom: '+(e.coupon||'não identificado'),'small'));
    card.append(el('p','Confirmar: '+(e.missing||[]).join('; '),'small muted'));
-   card.append(el('p','Preço: sem nota histórica · PC completo ainda não aprovado','small muted'),el('p','Anúncio de '+date(e.posted_at),'small muted'));
+   card.append(el('p','PC completo ainda não aprovado','small muted'),el('p','Anúncio de '+date(e.posted_at),'small muted'));
    card.append(anchor('Ver oferta ↗',e.offer_url),document.createTextNode(' · '),anchor('Postagem ↗',e.post_url));
    const sources=el('details');sources.append(el('summary','Evidências técnicas'));for(const source of e.sources||[])sources.append(anchor(source.title+' ↗',source.url),el('br'));card.append(sources);grid.append(card);
   }
