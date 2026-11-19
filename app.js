@@ -52,19 +52,13 @@ function renderOverview(){
 
  $('cost').replaceChildren();if(data.api_budget){$('cost').append(el('strong','US$ '+note(data.api_budget.reserved_usd)+' / '+note(data.api_budget.limit_usd)),el('p','Reserva conservadora de orçamento. Não é o valor efetivamente cobrado pela API.'));}else $('cost').append(el('p','Orçamento da API não exibido nesta versão do painel.'));
 }
-function renderPromising(){
- const list=$('promising-list');list.replaceChildren();
- const candidates=data.promising||[];
- if(!candidates.length){list.append(el('p','Nenhum candidato com evidência parcial suficiente nesta exportação.','rank-empty'));return;}
- for(const c of candidates){
-  const card=el('article',null,'part-card');card.append(el('h3',c.product),el('strong',brl(c.price_brl)),pill('Investigação pendente','warning'));
-  card.append(el('p',c.signal,'small'),el('p','Falta confirmar: '+(c.missing?.map(key=>missingLabels[key]||key.replaceAll('_',' ')).join(', ')||'critérios técnicos e condições da oferta')+'.','small'));
-  if(c.required_changes?.length)card.append(el('p','Mudanças a avaliar: '+c.required_changes.join('; '),'small'));
-  card.append(el('p','Preço anunciado, sem frete confirmado. Não é indicação de compra.','small muted'));
-  if(safeLink(c.post_url))card.append(anchor('Ver postagem ↗',c.post_url));
-  for(const proof of c.evidence||[])if(safeLink(proof.url))card.append(anchor(' Fonte técnica ↗',proof.url));
-  list.append(card);
- }
+function renderRecommendation(){
+ const selection=data.daily_summary?.recommendations,root=$('recommendation-list');root.replaceChildren();
+ $('recommendation-intro').textContent=selection?.intro||'A seleção será atualizada após a revisão das ofertas.';
+ $('recommendation-note').textContent=selection?.note||'';
+ for(const item of selection?.items||[]){const row=el('article',null,'recommendation-row'),info=el('div',null,'recommendation-info');
+ info.append(el('span',labels[item.category],'recommendation-category'),el('h3',item.product),el('p',item.reason));
+ const action=el('div',null,'recommendation-action');action.append(el('strong',brl(item.price_brl)));if(safeLink(item.offer_url)){const link=anchor('Ver oferta',item.offer_url);link.className='buy-link';action.append(link);}row.append(info,action);root.append(row);}
 }
 function renderShortlist(){
  const container=$('top-three');container.replaceChildren();
@@ -135,7 +129,7 @@ function renderHistory(){const group=data.series[$('history-product').value];$('
 function download(content,name,type){const a=el('a');const url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('copy-missing').addEventListener('click',async()=>{const list=data.coverage.filter(c=>data.manual_review?.messages?!(data.manual_review.shortlist[c.category]||[]).length:!['candidate'].includes(c.status));const text='Peças para pesquisar ou confirmar\n\n'+list.map(c=>c.label+': '+c.reference+' — '+(c.status==='missing'?'não encontrada':c.status==='no_price'?'sem preço identificado':'aguarda validação')).join('\n');try{await navigator.clipboard.writeText(text);$('copy-status').textContent='Lista copiada. Inclui peças ausentes e peças ainda pendentes.';}catch{download(text,'pecas-para-pesquisar.txt','text/plain;charset=utf-8');$('copy-status').textContent='Lista salva como arquivo de texto.';}});
 $('export-csv').addEventListener('click',()=>{const rows=[['Produto','Categoria','Preço BRL','Nota técnica','Custo-benefício','Média anterior BRL','Dias de histórico','Situação','Postagem'],...filtered.map(o=>[o.product,labels[o.category],o.price_brl,o.quality_score,o.value_score,o.historical_mean,o.history_days,statuses[o.review_status],o.post_url])];const csv=rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[=+\-@\t\r]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';}).join(';')).join('\r\n');download('\ufeff'+csv,'ofertas-radar-pc.csv','text/csv;charset=utf-8');});
-async function load(){try{let loaded;try{const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw Error();loaded=await response.json();}catch{loaded=window.RADAR_DATA;}if(!loaded||loaded.schema_version!==2||!Array.isArray(loaded.offers))throw Error();data=loaded;$('error').hidden=true;renderOverview();renderDailySummary();renderManual();renderPromising();renderShortlist();renderOffers();const old=$('history-product').value;$('history-product').replaceChildren();for(const [id,group] of Object.entries(data.series))$('history-product').append(new Option(group.product+' · '+group.terms,id));if(data.series[old])$('history-product').value=old;if(!Object.keys(data.series).length)$('history-product').append(new Option('Sem condições suficientes para comparar',''));renderHistory();}catch{$('error').hidden=false;$('error').textContent='Não foi possível carregar a exportação. Tente atualizar ou use a cópia mais recente disponibilizada pelo monitor.';$('updated').textContent='Dados indisponíveis';}}
+async function load(){try{let loaded;try{const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw Error();loaded=await response.json();}catch{loaded=window.RADAR_DATA;}if(!loaded||loaded.schema_version!==2||!Array.isArray(loaded.offers))throw Error();data=loaded;$('error').hidden=true;renderOverview();renderDailySummary();renderManual();renderRecommendation();renderShortlist();renderOffers();const old=$('history-product').value;$('history-product').replaceChildren();for(const [id,group] of Object.entries(data.series))$('history-product').append(new Option(group.product+' · '+group.terms,id));if(data.series[old])$('history-product').value=old;if(!Object.keys(data.series).length)$('history-product').append(new Option('Sem condições suficientes para comparar',''));renderHistory();}catch{$('error').hidden=false;$('error').textContent='Não foi possível carregar a exportação. Tente atualizar ou use a cópia mais recente disponibilizada pelo monitor.';$('updated').textContent='Dados indisponíveis';}}
 for(const [key,label] of Object.entries(labels))$('category').append(new Option(label,key));
 for(const id of ['search','category','status','sort'])$(id).addEventListener('input',()=>{page=0;renderOffers();});
 $('prev').addEventListener('click',()=>{page--;renderOffers();});$('next').addEventListener('click',()=>{page++;renderOffers();});$('history-product').addEventListener('change',renderHistory);$('refresh').addEventListener('click',load);$('close-detail').addEventListener('click',()=>$('detail').close());for(const a of document.querySelectorAll('.sidebar nav a'))a.setAttribute('aria-label',a.querySelector('span').textContent);
@@ -217,7 +211,7 @@ function renderManual(){
  $('subtotal').textContent=brl(sum);$('subtotal-note').textContent='Rota AM4 parcial indicada acima; faltam '+absent+', fretes e validação do conjunto.';
  $('missing-summary').textContent='Consultar a orientação editorial para comparar o custo das plataformas. Confirmar peças faltantes, BIOS, dimensões e condições antes da compra.';
  for(const id of ['shortlist','market']){const hidden=!data.offers.length;$(id).hidden=hidden;const nav=document.querySelector('.sidebar a[href="#'+id+'"]');if(nav)nav.href=hidden?'#manual-review':'#'+id;}
- $('promising').hidden=!(data.promising||[]).length;
+
  renderManualAudit();
 }
 $('manual-search').addEventListener('input',()=>{manualLimit=25;renderManualAudit();});
