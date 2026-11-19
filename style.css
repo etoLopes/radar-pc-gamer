@@ -8,3 +8,13 @@
 section[hidden]{display:none!important}
 
 .manual-orange{border-left:4px solid #bd5c0a}
+
+/* Grade and border share the same technical/editorial score, never price averages. */
+.manual-card.manual-green,.rank-card.tone-green{border:3px solid #198754;border-top-width:7px}
+.manual-card.manual-orange,.rank-card.tone-orange{border:3px solid #c45b08;border-top-width:7px}
+.manual-card.manual-black,.rank-card.tone-black{border:3px solid #111111;border-top-width:7px}
+.manual-card.manual-unknown,.rank-card.tone-unknown{border-color:#77817c}
+.grade-badge{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-radius:9px;margin:16px 0;color:#fff;background:#58645d}
+.grade-badge span{font-size:14px;font-weight:650}.grade-badge strong{font-size:36px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.grade-green{background:#146c43}.grade-orange{background:#a74706}.grade-black{background:#111}
+#daily-summary-content{font-size:16px;line-height:1.65}.daily-verdict{font-weight:650}.daily-picks{padding-left:22px}.daily-picks>li{padding:12px 0;border-bottom:1px solid var(--line)}.daily-picks p{margin:6px 0}.daily-picks details{margin-top:6px;padding-top:6px;font-size:14px}

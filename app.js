@@ -5,6 +5,8 @@ const number=v=>v==null||v===''||!Number.isFinite(Number(v))?null:Number(v);
 const brl=v=>number(v)==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const note=v=>number(v)==null?'—':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 const date=v=>new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'});
+const scoreTone=v=>number(v)==null?'unknown':Number(v)>=9?'black':Number(v)>=8?'green':'orange';
+function scoreBadge(value,label='Nota técnica'){const badge=el('div',null,'grade-badge grade-'+scoreTone(value));badge.append(el('span',label),el('strong',note(value)));return badge;}
 const day=v=>v.split('-').reverse().join('/');
 const relation={exact:'Modelo de referência',equivalent:'Similar à referência',superior:'Avaliado como superior',inferior:'Avaliado como inferior',unknown:'Comparação pendente'};
 const compat={compatible:'Compatível com o perfil avaliado',incompatible:'Incompatível com o perfil',requires_bundle_change:'Exige trocar outras peças',pending:'Compatibilidade pendente'};
@@ -72,8 +74,9 @@ function renderShortlist(){
   if(!offers.length){group.append(el('p','Nenhum candidato com nota técnica ≥ 8 e evidências suficientes.','rank-empty'));container.append(group);continue;}
   const grid=el('div',null,'rank-grid');
   offers.forEach((o,index)=>{
-   const card=el('article',null,'rank-card tone-'+o.border_tone);
+   const card=el('article',null,'rank-card tone-'+scoreTone(o.performance_score));
    card.append(el('span','#'+(index+1)+' · '+(o.combined_score?'Ranking com histórico':'Ranking provisório'),'rank-position'),el('h4',o.product),el('strong',brl(o.price_brl),'rank-price'));
+   card.append(scoreBadge(o.performance_score));
    const scores=el('dl',null,'rank-scores');
    for(const [name,value] of [['Técnica',o.performance_score],['Preço',o.price_score],['Média ponderada',o.combined_score]]){const part=el('div');part.append(el('dt',name),el('dd',note(value)));scores.append(part);}card.append(scores);
    card.append(el('p',o.price_basis,'small muted'),el('p',o.purchase_ready?'Oferta aprovada individualmente; confirme o combo.':'Boa candidata técnica; compra condicionada às verificações abaixo.','rank-warning'));
@@ -132,13 +135,23 @@ function renderHistory(){const group=data.series[$('history-product').value];$('
 function download(content,name,type){const a=el('a');const url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('copy-missing').addEventListener('click',async()=>{const list=data.coverage.filter(c=>data.manual_review?.messages?!(data.manual_review.shortlist[c.category]||[]).length:!['candidate'].includes(c.status));const text='Peças para pesquisar ou confirmar\n\n'+list.map(c=>c.label+': '+c.reference+' — '+(c.status==='missing'?'não encontrada':c.status==='no_price'?'sem preço identificado':'aguarda validação')).join('\n');try{await navigator.clipboard.writeText(text);$('copy-status').textContent='Lista copiada. Inclui peças ausentes e peças ainda pendentes.';}catch{download(text,'pecas-para-pesquisar.txt','text/plain;charset=utf-8');$('copy-status').textContent='Lista salva como arquivo de texto.';}});
 $('export-csv').addEventListener('click',()=>{const rows=[['Produto','Categoria','Preço BRL','Nota técnica','Custo-benefício','Média anterior BRL','Dias de histórico','Situação','Postagem'],...filtered.map(o=>[o.product,labels[o.category],o.price_brl,o.quality_score,o.value_score,o.historical_mean,o.history_days,statuses[o.review_status],o.post_url])];const csv=rows.map(row=>row.map(value=>{let text=String(value??'');if(/^[=+\-@\t\r]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';}).join(';')).join('\r\n');download('\ufeff'+csv,'ofertas-radar-pc.csv','text/csv;charset=utf-8');});
-async function load(){try{let loaded;try{const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw Error();loaded=await response.json();}catch{loaded=window.RADAR_DATA;}if(!loaded||loaded.schema_version!==2||!Array.isArray(loaded.offers))throw Error();data=loaded;$('error').hidden=true;renderOverview();renderManual();renderPromising();renderShortlist();renderOffers();const old=$('history-product').value;$('history-product').replaceChildren();for(const [id,group] of Object.entries(data.series))$('history-product').append(new Option(group.product+' · '+group.terms,id));if(data.series[old])$('history-product').value=old;if(!Object.keys(data.series).length)$('history-product').append(new Option('Sem condições suficientes para comparar',''));renderHistory();}catch{$('error').hidden=false;$('error').textContent='Não foi possível carregar a exportação. Tente atualizar ou use a cópia mais recente disponibilizada pelo monitor.';$('updated').textContent='Dados indisponíveis';}}
+async function load(){try{let loaded;try{const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw Error();loaded=await response.json();}catch{loaded=window.RADAR_DATA;}if(!loaded||loaded.schema_version!==2||!Array.isArray(loaded.offers))throw Error();data=loaded;$('error').hidden=true;renderOverview();renderDailySummary();renderManual();renderPromising();renderShortlist();renderOffers();const old=$('history-product').value;$('history-product').replaceChildren();for(const [id,group] of Object.entries(data.series))$('history-product').append(new Option(group.product+' · '+group.terms,id));if(data.series[old])$('history-product').value=old;if(!Object.keys(data.series).length)$('history-product').append(new Option('Sem condições suficientes para comparar',''));renderHistory();}catch{$('error').hidden=false;$('error').textContent='Não foi possível carregar a exportação. Tente atualizar ou use a cópia mais recente disponibilizada pelo monitor.';$('updated').textContent='Dados indisponíveis';}}
 for(const [key,label] of Object.entries(labels))$('category').append(new Option(label,key));
 for(const id of ['search','category','status','sort'])$(id).addEventListener('input',()=>{page=0;renderOffers();});
 $('prev').addEventListener('click',()=>{page--;renderOffers();});$('next').addEventListener('click',()=>{page++;renderOffers();});$('history-product').addEventListener('change',renderHistory);$('refresh').addEventListener('click',load);$('close-detail').addEventListener('click',()=>$('detail').close());for(const a of document.querySelectorAll('.sidebar nav a'))a.setAttribute('aria-label',a.querySelector('span').textContent);
 
 const manualDecisions={shortlist:'Selecionada para comparar',not_selected:'Não selecionada',insufficient_evidence:'Analisada · informação insuficiente',outside_scope:'Fora do perfil',announcement:'Comunicado'};
 let manualLimit=25;
+function renderDailySummary(){
+ const root=$('daily-summary-content');root.replaceChildren();const summary=data.daily_summary;
+ if(!summary){root.append(el('p','O primeiro resumo será preparado na coleta da manhã.','muted'));return;}
+ $('daily-summary-date').textContent='Resumo de '+day(summary.date)+' · '+date(summary.generated_at);
+ root.append(el('p',summary.headline,'daily-verdict'),el('p',summary.composition));
+ const list=el('ul',null,'daily-picks');
+ for(const pick of summary.picks||[]){const row=el('li');row.append(el('strong',labels[pick.category]+': '+pick.product),el('p',brl(pick.price_brl)+' · Nota '+note(pick.score)+' · '+pick.price_signal));
+ const details=el('details');details.append(el('summary','Por que considerar'),el('p',pick.observation),anchor('Ver postagem',pick.post_url));row.append(details);list.append(row);}
+ root.append(list,el('p',summary.method+' Retrato diário; consulte os cards para os dados mais recentes.','small muted'));
+}
 function renderManualAudit(){
  const entries=(data.manual_review?.items||[]).filter(e=>!$('manual-search').value||[e.product,e.observation,e.category].join(' ').toLocaleLowerCase().includes($('manual-search').value.toLocaleLowerCase()));
  $('manual-audit-count').textContent=entries.length+' ofertas de peças encontradas. Repetições preservadas na auditoria; não multiplicam os cards.';
@@ -163,8 +176,8 @@ function renderManual(){
   const group=el('section',null,'rank-group');group.append(el('h3',label));const entries=m.shortlist[cat]||[];
   if(!entries.length){group.append(el('p','Nenhuma oferta selecionada com evidência suficiente nesta revisão. Pesquise um modelo com especificações e garantia identificáveis.','rank-empty'));}
   const grid=el('div',null,'rank-grid');
-  for(const e of entries){const card=el('article',null,'manual-card '+(Number(e.combined_score||e.editorial_score)>=9?'manual-black':Number(e.combined_score||e.editorial_score)>=8?'manual-green':'manual-orange'));
-   card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':e.origin==='rules'?'Filtro de compatibilidade':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
+  for(const e of entries){const card=el('article',null,'manual-card manual-'+scoreTone(e.editorial_score));
+   card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':e.origin==='rules'?'Filtro de compatibilidade':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),scoreBadge(e.editorial_score,'Nota editorial'),el('p',e.observation));
    card.append(el('p','Preço: '+note(e.price_score)+' · Média das notas: '+note(e.combined_score),'small'),el('p',e.price_note||'Histórico insuficiente','small muted'));if(e.historical_mean)card.append(el('p','Média observada: '+brl(e.historical_mean)+' · '+e.history_days+' dia(s) comparáveis','small'));
    if(e.purchase_context){const pc=e.purchase_context;card.append(el('p',pc.reason,'small'));if(pc.budget_share_pct)card.append(el('p','Esta peça usa '+Number(pc.budget_share_pct).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'% do orçamento-alvo','small muted'));}
    if(e.calibration_note)card.append(el('p',e.calibration_note,'small muted'));
