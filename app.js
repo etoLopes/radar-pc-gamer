@@ -144,13 +144,14 @@ const manualDecisions={shortlist:'Selecionada para comparar',not_selected:'Não 
 let manualLimit=25;
 function renderDailySummary(){
  const root=$('daily-summary-content');root.replaceChildren();const summary=data.daily_summary;
- if(!summary){root.append(el('p','O primeiro resumo será preparado na coleta da manhã.','muted'));return;}
+ if(!summary){root.append(el('p','A orientação aguarda uma revisão editorial neste chat.','muted'));return;}
  $('daily-summary-date').textContent='Resumo de '+day(summary.date)+' · '+date(summary.generated_at);
  root.append(el('p',summary.headline,'daily-verdict'),el('p',summary.composition));
  const list=el('ul',null,'daily-picks');
  for(const pick of summary.picks||[]){const row=el('li');row.append(el('strong',labels[pick.category]+': '+pick.product),el('p',brl(pick.price_brl)+' · Nota '+note(pick.score)+' · '+pick.price_signal));
  const details=el('details');details.append(el('summary','Por que considerar'),el('p',pick.observation),anchor('Ver postagem',pick.post_url));row.append(details);list.append(row);}
- root.append(list,el('p',summary.method+' Retrato diário; consulte os cards para os dados mais recentes.','small muted'));
+ if(summary.sources?.length){const sources=el('details');sources.append(el('summary','Fontes da orientação'));for(const source of summary.sources)sources.append(anchor(source.title,source.url),el('br'));root.append(sources);}
+ root.append(list,el('p',summary.method+' Consulte os cards para os dados mais recentes.','small muted'));
 }
 function renderManualAudit(){
  const entries=(data.manual_review?.items||[]).filter(e=>!$('manual-search').value||[e.product,e.observation,e.category].join(' ').toLocaleLowerCase().includes($('manual-search').value.toLocaleLowerCase()));
@@ -191,13 +192,13 @@ function renderManual(){
   group.append(grid);$('manual-results').append(group);
  }
  const am4=(m.shortlist.cpu||[]).filter(e=>['ryzen5600x','ryzen5700x'].includes(e.model_key));
- const partial=[am4[0],...['gpu','motherboard','psu','case','cooler'].map(k=>m.shortlist[k]?.[0])].filter(Boolean);
+ const partial=[am4[0],(m.shortlist.motherboard||[]).find(e=>/B550/i.test(e.product)),...['gpu','psu','case','cooler'].map(k=>m.shortlist[k]?.[0])].filter(Boolean);
  const sum=partial.reduce((n,e)=>n+Number(e.price_brl),0);const absent=Object.keys(labels).filter(k=>!partial.some(e=>e.category===k)).map(k=>labels[k]).join(', ');
  $('manual-budget').textContent='Rota AM4 exploratória: '+partial.map(e=>labels[e.category]).join(' + ')+' somam '+brl(sum)+'. Restam '+brl(Number(data.hard_budget_brl)-sum)+' do teto para '+absent+', fretes e eventuais ajustes. Não é um PC completo nem uma montagem validada; ofertas e cupons podem ter condições diferentes.';
  $('coverage').replaceChildren();
  for(const c of data.coverage){const entries=m.shortlist[c.category]||m.shortlist[c.key]||[];const card=el('article',null,'part-card');card.append(el('span',c.label,'part-label'),pill(entries.length?'Candidato editorial; montagem não aprovada':'Pesquisar alternativa',entries.length?'green':'warning'),el('span','Referência: '+c.reference,'small muted'),el('strong',brl(entries[0]?.price_brl)));$('coverage').append(card);}
  $('subtotal').textContent=brl(sum);$('subtotal-note').textContent='Rota AM4 parcial indicada acima; faltam '+absent+', fretes e validação do conjunto.';
- $('missing-summary').textContent='Prioridade para pesquisa externa: RAM e SSD. Confirmar BIOS, dimensões e condições das ofertas antes da compra.';
+ $('missing-summary').textContent='Consultar a orientação editorial para comparar o custo das plataformas. Confirmar peças faltantes, BIOS, dimensões e condições antes da compra.';
  for(const id of ['shortlist','market']){const hidden=!data.offers.length;$(id).hidden=hidden;const nav=document.querySelector('.sidebar a[href="#'+id+'"]');if(nav)nav.href=hidden?'#manual-review':'#'+id;}
  $('promising').hidden=!(data.promising||[]).length;
  renderManualAudit();
