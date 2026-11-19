@@ -156,7 +156,7 @@ function renderDailySummary(){
  for(const scenario of summary.scenarios||[]){
  const row=el('div',null,'scenario-row'),header=el('div',null,'scenario-heading'),identity=el('div',null,'scenario-identity');
  identity.append(el('span',scenario.label),el('strong',brl(scenario.subtotal_brl)));header.append(identity);
- if(number(scenario.value_score)!=null){const badge=scoreBadge(scenario.value_score,'Custo-benefício');badge.classList.add('scenario-score-inline');header.append(badge);}else{header.append(el('span','Nota pendente','small muted'));}
+ if(number(scenario.value_score)!=null){const badge=el('div',null,'scenario-rating rating-'+scoreTone(scenario.value_score));badge.title='Nota provisória de custo-benefício do conjunto';badge.setAttribute('aria-label','Custo-benefício do conjunto: '+note(scenario.value_score));badge.append(el('span','C/B'),el('b',note(scenario.value_score)));header.append(badge);}else{header.append(el('span','Nota pendente','small muted'));}
  row.append(header);
  const meter=el('meter');meter.min=0;meter.max=Number(data.hard_budget_brl)||7300;meter.value=Number(scenario.subtotal_brl)||0;meter.setAttribute('aria-label',scenario.label+' — subtotal em relação ao teto');row.append(meter);
  const reason=el('details');reason.append(el('summary','Entender a nota'),el('p',scenario.value_reason||'Avaliação pendente.'));
