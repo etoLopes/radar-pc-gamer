@@ -60,7 +60,12 @@ function renderRecommendation(){
  $('recommendation-note').textContent=selection?.note||'';
  for(const item of selection?.items||[]){const row=el('article',null,'recommendation-row'),info=el('div',null,'recommendation-info');
  info.append(el('span',labels[item.category],'recommendation-category'),el('h3',item.product),el('p',item.reason));
- const action=el('div',null,'recommendation-action');action.append(el('strong',brl(item.price_brl)));if(safeLink(item.offer_url)){const link=anchor('Ver oferta',item.offer_url);link.className='buy-link';action.append(link);}row.append(info,action);root.append(row);}
+ const action=el('div',null,'recommendation-action');action.append(el('strong',brl(item.price_brl)));if(safeLink(item.offer_url)){const link=anchor('Ver oferta',item.offer_url);link.className='buy-link';action.append(link);}row.append(info,action);root.append(row);
+ for(const alternative of item.alternatives||[]){if(alternative.stock!=='available'||!safeLink(alternative.offer_url))continue;
+ const alt=el('article',null,'recommendation-row recommendation-alternative'),text=el('div',null,'recommendation-info');
+ text.append(el('span','Alternativa encontrada na pesquisa','recommendation-category'),el('h3',alternative.product),el('p',alternative.reason),el('p',alternative.store+' · '+alternative.payment_terms,'small'),el('p','Disponibilidade conferida em '+date(alternative.checked_at)+'. Sujeita a alteração.','small muted'));
+ const buy=el('div',null,'recommendation-action'),link=anchor('Ver oferta',alternative.offer_url);link.className='buy-link';buy.append(el('strong',brl(alternative.price_brl)),link);alt.append(text,buy);root.append(alt);}
+ }
 }
 function renderMarketResearch(){
  const report=data.market_research,root=$('market-research-results');root.replaceChildren();
