@@ -44,7 +44,7 @@ function renderOverview(){
  const append=(label,value)=>{const row=el('div',null,'process-row');row.append(el('span',label),el('strong',value));$('processing').append(row);};
  append('Pendência mais antiga',op.pending?Math.ceil(op.oldest_pending_seconds/3600)+' h':'Sem fila');
  append('Falhas isoladas / aguardando nova tentativa',op.isolated_failures+' / '+op.retry_waiting);
- for(const [kind,label] of [['collection','Última coleta'],['analysis','Última análise']]){const run=op.runs.find(r=>r.kind===kind);if(run)append(label,new Date(run.started_at).toLocaleString('pt-BR')+' · '+(labels[run.outcome]||run.outcome));}
+ for(const [kind,label] of [['collection','Última coleta'],['analysis','Última análise']]){const run=op.runs.find(r=>r.kind===kind);if(run)append(label,date(run.started_at)+' · '+(labels[run.outcome]||run.outcome));}
  const last=op.runs.find(r=>r.kind==='analysis');if(last)append('Reutilizações / pesquisas técnicas (última execução)',(last.metrics.technical_cache_hits||0)+' / '+(last.metrics.technical_researches||0));
  }
 
