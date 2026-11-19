@@ -166,6 +166,7 @@ function renderManual(){
   for(const e of entries){const card=el('article',null,'manual-card '+(Number(e.combined_score||e.editorial_score)>=9?'manual-black':Number(e.combined_score||e.editorial_score)>=8?'manual-green':'manual-orange'));
    card.append(el('p',e.origin==='deepseek'?'Análise DeepSeek':e.origin==='rules'?'Filtro de compatibilidade':'Revisão manual','small muted'),el('h4',e.product),el('strong',brl(e.price_brl),'manual-price'),pill('Nota editorial '+note(e.editorial_score)),el('p',e.observation));
    card.append(el('p','Preço: '+note(e.price_score)+' · Média das notas: '+note(e.combined_score),'small'),el('p',e.price_note||'Histórico insuficiente','small muted'));if(e.historical_mean)card.append(el('p','Média observada: '+brl(e.historical_mean)+' · '+e.history_days+' dia(s) comparáveis','small'));
+   if(e.purchase_context){const pc=e.purchase_context;card.append(el('p',pc.reason,'small'));if(pc.budget_share_pct)card.append(el('p','Esta peça usa '+Number(pc.budget_share_pct).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'% do orçamento-alvo','small muted'));}
    if(e.calibration_note)card.append(el('p',e.calibration_note,'small muted'));
    const why=el('abbr','Por que serve para mim?');why.title=e.observation;card.append(why);
    card.append(el('p','Pagamento: '+(e.payment_terms||'não identificado')+' · Cupom: '+(e.coupon||'não identificado'),'small'));
