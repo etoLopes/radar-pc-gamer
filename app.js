@@ -141,7 +141,7 @@ for(const id of ['search','category','status','sort'])$(id).addEventListener('in
 $('prev').addEventListener('click',()=>{page--;renderOffers();});$('next').addEventListener('click',()=>{page++;renderOffers();});$('history-product').addEventListener('change',renderHistory);$('refresh').addEventListener('click',load);$('close-detail').addEventListener('click',()=>$('detail').close());for(const a of document.querySelectorAll('.sidebar nav a'))a.setAttribute('aria-label',a.querySelector('span').textContent);
 
 const manualDecisions={shortlist:'Selecionada para comparar',not_selected:'Não selecionada',insufficient_evidence:'Analisada · informação insuficiente',outside_scope:'Fora do perfil',announcement:'Comunicado'};
-let manualLimit=25;
+let manualLimit=25,activeCategory="cpu";
 function renderDailySummary(){
  const root=$('daily-summary-content');root.replaceChildren();const summary=data.daily_summary;
  if(!summary){root.append(el('p','A orientação aguarda uma revisão editorial neste chat.','muted'));return;}
@@ -151,7 +151,11 @@ function renderDailySummary(){
  for(const pick of summary.picks||[]){const row=el('li');row.append(el('strong',labels[pick.category]+': '+pick.product),el('p',brl(pick.price_brl)+' · Nota '+note(pick.score)+' · '+pick.price_signal));
  const details=el('details');details.append(el('summary','Por que considerar'),el('p',pick.observation),anchor('Ver postagem',pick.post_url));row.append(details);list.append(row);}
  if(summary.sources?.length){const sources=el('details');sources.append(el('summary','Fontes da orientação'));for(const source of summary.sources)sources.append(anchor(source.title,source.url),el('br'));root.append(sources);}
- root.append(list,el('p',summary.method+' Consulte os cards para os dados mais recentes.','small muted'));
+ const expanded=el('details');expanded.append(el('summary','Recomendações e justificativas'),list);
+ const scenarios=$('scenario-panel');scenarios.replaceChildren(el('h3','Cenários do conjunto'),el('p','Parciais · sem RAM, SSD e frete','small muted'));
+ for(const scenario of summary.scenarios||[]){const row=el('div',null,'scenario-row');row.append(el('span',scenario.label),el('strong',brl(scenario.subtotal_brl)));const meter=el('meter');meter.min=0;meter.max=Number(data.hard_budget_brl)||7300;meter.value=Number(scenario.subtotal_brl)||0;meter.setAttribute('aria-label',scenario.label+' — subtotal em relação ao teto');row.append(meter);scenarios.append(row);}
+ scenarios.append(el('p','Teto do conjunto: '+brl(data.hard_budget_brl),'small'));
+ root.append(expanded,el('p',summary.method+' Consulte os cards para os dados mais recentes.','small muted'));
 }
 function renderManualAudit(){
  const entries=(data.manual_review?.items||[]).filter(e=>!$('manual-search').value||[e.product,e.observation,e.category].join(' ').toLocaleLowerCase().includes($('manual-search').value.toLocaleLowerCase()));
@@ -172,9 +176,10 @@ function renderManual(){
  $('manual-method').textContent=m.methodology;$('manual-price').textContent=m.price_methodology;
  $('offer-count').textContent=selected.length;$('offer-count').previousElementSibling.textContent='Modelos na seleção editorial';$('offer-count').nextElementSibling.textContent='Até 3 por categoria · nota editorial ≥ 8';
  $('coverage-count').textContent=Object.keys(m.shortlist).filter(k=>k!=='cooler'&&labels[k]&&m.shortlist[k].length).length+' / 7';
- $('manual-results').replaceChildren();
+ $('manual-results').replaceChildren();$('category-tabs').replaceChildren();
  for(const [cat,label] of Object.entries(labels)){
-  const group=el('section',null,'rank-group');group.append(el('h3',label));const entries=m.shortlist[cat]||[];
+  const tab=el('button',label,'category-tab');tab.type='button';tab.setAttribute('aria-pressed',String(cat===activeCategory));tab.addEventListener('click',()=>{activeCategory=cat;renderManual();});$('category-tabs').append(tab);
+  const group=el('section',null,'rank-group');group.hidden=cat!==activeCategory;group.append(el('h3',label));const entries=m.shortlist[cat]||[];
   if(!entries.length){group.append(el('p','Nenhuma oferta selecionada com evidência suficiente nesta revisão. Pesquise um modelo com especificações e garantia identificáveis.','rank-empty'));}
   const grid=el('div',null,'rank-grid');
   for(const e of entries){const card=el('article',null,'manual-card manual-'+scoreTone(e.editorial_score));
@@ -187,7 +192,7 @@ function renderManual(){
    card.append(el('p','Confirmar: '+(e.missing||[]).join('; '),'small muted'));
    card.append(el('p','PC completo ainda não aprovado','small muted'),el('p','Anúncio de '+date(e.posted_at),'small muted'));
    card.append(anchor('Ver oferta ↗',e.offer_url),document.createTextNode(' · '),anchor('Postagem ↗',e.post_url));
-   const sources=el('details');sources.append(el('summary','Evidências técnicas'));for(const source of e.sources||[])sources.append(anchor(source.title+' ↗',source.url),el('br'));card.append(sources);grid.append(card);
+   const sources=el('details');sources.append(el('summary','Evidências técnicas'));for(const source of e.sources||[])sources.append(anchor(source.title+' ↗',source.url),el('br'));card.append(sources);const extra=el('details',null,'card-details');extra.append(el('summary','Condições, compatibilidade e fontes'));for(const node of [...card.children].slice(5)){extra.append(node);}for(const node of [...card.childNodes]){if(node.nodeType===3)node.remove();}card.append(extra);grid.append(card);
   }
   group.append(grid);$('manual-results').append(group);
  }
